@@ -1,0 +1,39 @@
+{
+  "tool_name": "wasm-tools",
+  "github_repo": "bytecodealliance/wasm-tools",
+  "latest_version": "1.243.0",
+  "last_checked": "2026-01-01T13:28:31.428564Z",
+  "build_type": "binary",
+  "versions": {
+    "1.243.0": {
+      "release_date": "2025-12-03",
+      "platforms": {
+        "darwin_arm64": {
+          "sha256": "6690a33a06ef705a63dbc066210bc0f09b1c08a82952d3cde9fbebd0d484b46f",
+          "url_suffix": "aarch64-macos.tar.gz",
+          "binaries": ["wasm-tools", "wasm-opt"],
+          "archive_type": "tar.gz"
+        },
+        "darwin_amd64": {
+          "sha256": "3d03bc02fed63998e0ee8d88eb86d90bdb8e32e7cadc77d2f9e792b9dff8433a",
+          "url_suffix": "x86_64-macos.tar.gz",
+          "binaries": ["wasm-tools", "wasm-opt"],
+          "archive_type": "tar.gz"
+        },
+        "linux_amd64": {
+          "sha256": "f261622f8015d38ebe9c3345cc2f7bb5de055d3a66ab44efdf78f11068ed9d9f",
+          "url_suffix": "x86_64-linux.tar.gz",
+          "binaries": ["wasm-tools", "wasm-opt"],
+          "archive_type": "tar.gz"
+        }
+      }
+    }
+  },
+  "supported_platforms": [
+    "darwin_amd64",
+    "darwin_arm64",
+    "linux_amd64",
+    "linux_arm64",
+    "windows_amd64"
+  ]
+}

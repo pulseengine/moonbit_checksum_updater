@@ -1,0 +1,15 @@
+# MoonBit Checksum Updater Module
+
+bazel_dep(name = "rules_moonbit", version = "0.6.33")
+bazel_dep(name = "rules_rust", version = "0.4.0")
+bazel_dep(name = "gazelle", version = "0.30.0")
+
+moonbit = use_extension("@rules_moonbit//moonbit:extensions.bzl", "moonbit")
+moonbit.use()
+
+moonbit.toolchain(
+    name = "moonbit_toolchain",
+    moonbit_version = "0.6.33",
+)
+
+register_toolchains("@moonbit_toolchain//:toolchain")

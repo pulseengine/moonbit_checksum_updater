@@ -1,0 +1,98 @@
+# MoonBit Checksum Updater Build Configuration
+
+load("@rules_moonbit//moonbit:defs.bzl", "moonbit_library", "moonbit_binary")
+
+package(default_visibility = ["//visibility:public"])
+
+# Core library
+moonbit_library(
+    name = "checksum_core",
+    srcs = [
+        "src/ChecksumManager.mbt",
+        "src/GitHubClient.mbt", 
+        "src/UpdateEngine.mbt",
+        "src/Validator.mbt",
+        "src/Types.mbt",
+        "src/Errors.mbt",
+        "src/AsyncUtils.mbt",
+        "src/Validation.mbt",
+        "src/RealHttpClient.mbt",
+    ],
+    deps = [
+        "//:json_utils",
+        "//:http_client",
+    ],
+)
+
+# JSON utilities
+moonbit_library(
+    name = "json_utils",
+    srcs = ["src/JsonUtils.mbt"],
+)
+
+# HTTP client
+moonbit_library(
+    name = "http_client",
+    srcs = ["src/HttpClient.mbt"],
+)
+
+# CLI binary
+moonbit_binary(
+    name = "checksum_updater",
+    srcs = ["src/Main.mbt"],
+    deps = [":checksum_core"],
+)
+
+# Test library
+moonbit_library(
+    name = "test_utils",
+    srcs = ["tests/TestUtils.mbt"],
+    deps = [":checksum_core"],
+)
+
+# Unit tests
+moonbit_binary(
+    name = "http_client_tests",
+    srcs = ["test/unit/HttpClientTest.mbt"],
+    deps = [":checksum_core"],
+)
+
+moonbit_binary(
+    name = "checksum_manager_tests",
+    srcs = ["test/unit/ChecksumManagerTest.mbt"],
+    deps = [":checksum_core"],
+)
+
+# Integration tests
+moonbit_binary(
+    name = "workflow_tests",
+    srcs = ["test/integration/WorkflowTest.mbt"],
+    deps = [":checksum_core"],
+)
+
+# Performance tests
+moonbit_binary(
+    name = "performance_tests",
+    srcs = ["test/performance/PerformanceTest.mbt"],
+    deps = [":checksum_core"],
+)
+
+# Test runner
+moonbit_binary(
+    name = "test_runner",
+    srcs = ["test/TestRunner.mbt"],
+    deps = [
+        ":checksum_core",
+        ":http_client_tests",
+        ":checksum_manager_tests",
+        ":workflow_tests",
+        ":performance_tests"
+    ]
+)
+
+# Original tests (kept for backward compatibility)
+moonbit_binary(
+    name = "checksum_tests",
+    srcs = ["tests/ChecksumTests.mbt"],
+    deps = [":test_utils"],
+)
