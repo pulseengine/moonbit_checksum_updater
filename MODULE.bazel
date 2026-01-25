@@ -1,15 +1,30 @@
 # MoonBit Checksum Updater Module
+#
+# This project builds a WASM component CLI tool for updating checksums.
+# It uses:
+# - rules_moonbit: MoonBit language compilation
+# - rules_wasm_component: WASM Component Model wrapping with WASI support
 
-bazel_dep(name = "rules_moonbit", version = "0.6.33")
-bazel_dep(name = "rules_rust", version = "0.4.0")
-bazel_dep(name = "gazelle", version = "0.30.0")
+bazel_dep(name = "rules_moonbit", version = "0.1.0")
+bazel_dep(name = "rules_wasm_component", version = "1.0.0")
+bazel_dep(name = "bazel_skylib", version = "1.7.1")
 
-moonbit = use_extension("@rules_moonbit//moonbit:extensions.bzl", "moonbit")
-moonbit.use()
-
-moonbit.toolchain(
-    name = "moonbit_toolchain",
-    moonbit_version = "0.6.33",
+# Git overrides for CI compatibility (not in BCR yet)
+git_override(
+    module_name = "rules_moonbit",
+    remote = "https://github.com/pulseengine/rules_moonbit.git",
+    commit = "b5bbfe8ef1f87b42c77f168640817f67ed8758a3",
 )
 
-register_toolchains("@moonbit_toolchain//:toolchain")
+git_override(
+    module_name = "rules_wasm_component",
+    remote = "https://github.com/pulseengine/rules_wasm_component.git",
+    commit = "fb968873d3487f307b61af2beebccfd1e7146a76",  # feature/moonbit-component-support
+)
+
+# Use the MoonBit toolchain extension
+moonbit = use_extension("@rules_moonbit//moonbit:extensions.bzl", "moonbit_toolchain_extension")
+use_repo(moonbit, "moonbit_toolchain")
+
+# Register the hermetic toolchain
+register_toolchains("@moonbit_toolchain//:moonbit_toolchain")
