@@ -19,7 +19,7 @@ git_override(
 git_override(
     module_name = "rules_wasm_component",
     remote = "https://github.com/pulseengine/rules_wasm_component.git",
-    commit = "fb968873d3487f307b61af2beebccfd1e7146a76",  # feature/moonbit-component-support
+    commit = "2bb927b8173e6aa170f4facdaab6ae27aee94b33",  # main branch
 )
 
 # Use the MoonBit toolchain extension
