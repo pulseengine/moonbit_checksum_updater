@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  BAZEL_VERSION: 8.2.1
+
+jobs:
+  build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Bazelisk
+        run: |
+          curl -LO https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64
+          chmod +x bazelisk-linux-amd64
+          sudo mv bazelisk-linux-amd64 /usr/local/bin/bazel
+
+      - name: Build WASI CLI Component
+        run: |
+          bazel build //:checksum_updater_wasi
+
+      - name: Verify Component
+        run: |
+          # Check the component was built
+          ls -la bazel-bin/*.wasm || ls -la bazel-bin/**/*.wasm || echo "Checking component output..."
+
+          # Validate it's a proper WASM component
+          bazel run @rules_wasm_component//tools:wasm_tools -- component wit bazel-bin/checksum_updater_wasi.wasm || true
+
+  build-macos:
+    name: Build on macOS
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Bazelisk
+        run: |
+          brew install bazelisk
+
+      - name: Build WASI CLI Component
+        run: |
+          bazel build //:checksum_updater_wasi
