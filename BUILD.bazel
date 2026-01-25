@@ -1,6 +1,12 @@
 # MoonBit Checksum Updater Build Configuration
+#
+# This builds a WASM Component CLI tool for updating checksums.
+# Two patterns are demonstrated:
+# 1. moonbit_binary - Simple WASM output (uses spectest, doesn't run with wasmtime)
+# 2. moonbit_wasm + moonbit_wasm_binary - Full WASM Component with WASI support
 
-load("@rules_moonbit//moonbit:defs.bzl", "moonbit_library", "moonbit_binary")
+load("@rules_moonbit//moonbit:defs.bzl", "moonbit_library", "moonbit_binary", "moonbit_wasm")
+load("@rules_wasm_component//moonbit:defs.bzl", "moonbit_wasm_binary", "moonbit_wasm_cli")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -9,7 +15,7 @@ moonbit_library(
     name = "checksum_core",
     srcs = [
         "src/ChecksumManager.mbt",
-        "src/GitHubClient.mbt", 
+        "src/GitHubClient.mbt",
         "src/UpdateEngine.mbt",
         "src/Validator.mbt",
         "src/Types.mbt",
@@ -17,6 +23,7 @@ moonbit_library(
         "src/AsyncUtils.mbt",
         "src/Validation.mbt",
         "src/RealHttpClient.mbt",
+        "src/Main.mbt",  # Library CLI entry point (run_cli function)
     ],
     deps = [
         "//:json_utils",
@@ -36,11 +43,43 @@ moonbit_library(
     srcs = ["src/HttpClient.mbt"],
 )
 
-# CLI binary
+# Simple binary (uses spectest for I/O, won't run with wasmtime)
 moonbit_binary(
-    name = "checksum_updater",
-    srcs = ["src/Main.mbt"],
+    name = "checksum_updater_simple",
+    srcs = ["cmd/main/main.mbt"],
     deps = [":checksum_core"],
+)
+
+# ============================================================================
+# WASM Component Model Build (Full WASI support)
+# ============================================================================
+# This is the proper way to build a CLI tool that runs with wasmtime.
+# Step 1: Compile MoonBit to core WASM
+# Step 2: Wrap with WASI CLI world using wasm-tools
+
+# Core WASM compilation (uses rules_moonbit)
+moonbit_wasm(
+    name = "checksum_updater_core",
+    srcs = ["cmd/main/main.mbt"],
+    is_main = True,
+)
+
+# WASM Component CLI (uses rules_wasm_component)
+# Creates a component that exports wasi:cli/run and can be run with wasmtime
+moonbit_wasm_binary(
+    name = "checksum_updater",
+    lib = ":checksum_updater_core",
+)
+
+# ============================================================================
+# WASM Component CLI with Full WASI Bindings (NEW)
+# ============================================================================
+# This approach uses wit-bindgen moonbit to generate proper WASI bindings,
+# avoiding the spectest dependency that breaks moonbit_wasm_binary.
+
+moonbit_wasm_cli(
+    name = "checksum_updater_wasi",
+    srcs = ["cmd/wasi/main.mbt"],
 )
 
 # Test library
