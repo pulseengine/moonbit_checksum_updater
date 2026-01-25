@@ -13,7 +13,7 @@ bazel_dep(name = "bazel_skylib", version = "1.7.1")
 git_override(
     module_name = "rules_moonbit",
     remote = "https://github.com/pulseengine/rules_moonbit.git",
-    commit = "b5bbfe8ef1f87b42c77f168640817f67ed8758a3",
+    commit = "d30c92b67dabad26db610d77b3684c402354025f",
 )
 
 git_override(
