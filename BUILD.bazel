@@ -15,7 +15,6 @@ moonbit_library(
     name = "checksum_core",
     srcs = [
         "src/ChecksumManager.mbt",
-        "src/GitHubClient.mbt",
         "src/UpdateEngine.mbt",
         "src/Validator.mbt",
         "src/Types.mbt",
@@ -82,12 +81,7 @@ moonbit_wasm_cli(
     srcs = ["cmd/wasi/main.mbt"],
 )
 
-# Test library
-moonbit_library(
-    name = "test_utils",
-    srcs = ["tests/TestUtils.mbt"],
-    deps = [":checksum_core"],
-)
+# Note: test_utils target removed - TestUtils.mbt doesn't exist
 
 # Unit tests
 moonbit_binary(
@@ -133,5 +127,5 @@ moonbit_binary(
 moonbit_binary(
     name = "checksum_tests",
     srcs = ["tests/ChecksumTests.mbt"],
-    deps = [":test_utils"],
+    deps = [":checksum_core"],
 )
