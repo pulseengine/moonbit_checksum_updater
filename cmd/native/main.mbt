@@ -155,6 +155,7 @@ fn main {
     "list" => run_list(fs, checksum_dir)
     "validate" => run_validate(fs, checksum_dir)
     "update-all" => run_update_all(fs, checksum_dir)
+    "fill-checksums" => run_fill_checksums(fs, checksum_dir)
     "help" | "--help" | "-h" => print_help()
     "version" | "--version" | "-V" => println("MoonBit Checksum Updater v0.1.0")
     _ => {
@@ -208,6 +209,91 @@ fn run_update_all(fs : NativeFileSystem, checksum_dir : String) -> Unit {
   }
 }
 
+fn run_fill_checksums(fs : NativeFileSystem, checksum_dir : String) -> Unit {
+  let http = NativeHttpClient::{}
+  let hasher = NativeSha256Hasher::{}
+  let files_result : Result[Array[String], _] = try {
+    Ok(fs.list_dir(checksum_dir))
+  } catch {
+    e => Err(e)
+  }
+  let files = match files_result {
+    Ok(f) => f
+    Err(e) => {
+      println("Error listing directory: \{e}")
+      return
+    }
+  }
+  let mut filled = 0
+  let mut skipped = 0
+  let mut failed = 0
+  for file in files {
+    if not(file.has_suffix(".json")) {
+      continue
+    }
+    let path = "\{checksum_dir}/\{file}"
+    let load_result : Result[@lib.ToolInfo, _] = try {
+      Ok(@lib.load_tool_info(fs, path))
+    } catch {
+      e => Err(e)
+    }
+    let info = match load_result {
+      Ok(i) => i
+      Err(e) => {
+        println("  [FAILED] \{file}: load error - \{e}")
+        failed += 1
+        continue
+      }
+    }
+    let version = info.latest_version
+    if version == "" {
+      println("  [SKIP]   \{info.tool_name}: no latest version")
+      skipped += 1
+      continue
+    }
+    if not(info.versions.contains(version)) {
+      println("  [SKIP]   \{info.tool_name}: version \{version} not found")
+      skipped += 1
+      continue
+    }
+    let version_info = info.versions[version]
+    let tag = "v\{version}"
+    let fill_result : Result[@lib.VersionInfo, _] = try {
+      Ok(@lib.fill_checksums(http, hasher, info.github_repo, tag, version_info))
+    } catch {
+      e => Err(e)
+    }
+    match fill_result {
+      Ok(updated_vi) => {
+        info.versions[version] = updated_vi
+        let save_result : Result[Unit, _] = try {
+          Ok(@lib.save_tool_info(fs, path, info))
+        } catch {
+          e => Err(e)
+        }
+        match save_result {
+          Ok(_) => {
+            println("  [FILLED] \{info.tool_name} v\{version}")
+            filled += 1
+          }
+          Err(e) => {
+            println("  [FAILED] \{info.tool_name}: save error - \{e}")
+            failed += 1
+          }
+        }
+      }
+      Err(e) => {
+        println("  [FAILED] \{info.tool_name}: \{e}")
+        failed += 1
+      }
+    }
+  }
+  println("")
+  println("Fill Checksums Summary")
+  println("======================")
+  println("Filled: \{filled}, Skipped: \{skipped}, Failed: \{failed}")
+}
+
 fn print_help() -> Unit {
   println("MoonBit Checksum Updater v0.1.0")
   println("")
@@ -217,11 +303,12 @@ fn print_help() -> Unit {
   println("    checksum_updater <COMMAND> [CHECKSUM_DIR]")
   println("")
   println("COMMANDS:")
-  println("    list        List all configured tools and versions")
-  println("    validate    Validate checksum file structure")
-  println("    update-all  Update checksums for all tools")
-  println("    help        Show this help message")
-  println("    version     Show version information")
+  println("    list             List all configured tools and versions")
+  println("    validate         Validate checksum file structure")
+  println("    update-all       Update checksums for all tools")
+  println("    fill-checksums   Download assets and compute SHA256 checksums")
+  println("    help             Show this help message")
+  println("    version          Show version information")
   println("")
   println("ARGUMENTS:")
   println("    CHECKSUM_DIR  Directory containing checksum JSON files")

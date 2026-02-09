@@ -125,3 +125,24 @@ jobs:
             checksum_updater_wasi.wasm
             checksum_updater_wasi.wasm.sha256
           retention-days: 90
+
+  moonbit:
+    name: MoonBit Check and Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install MoonBit toolchain
+        run: |
+          curl -fsSL https://cli.moonbitlang.com/install/unix.sh | bash
+          echo "$HOME/.moon/bin" >> $GITHUB_PATH
+
+      - name: Install dependencies
+        run: moon install
+
+      - name: Check (native target)
+        run: moon check --target native
+
+      - name: Test (native target)
+        run: moon test --target native -p lib
