@@ -1,0 +1,12 @@
+{
+  "is-main": true,
+  "supported-targets": ["native"],
+  "import": [
+    "pulseengine/moonbit_checksum_updater/lib",
+    "moonbitlang/x/fs",
+    "moonbitlang/x/sys",
+    "moonbitlang/x/crypto",
+    "moonbitlang/x/encoding"
+  ],
+  "native-stub": ["native_stub.c"]
+}

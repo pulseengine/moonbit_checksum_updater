@@ -1,9 +1,17 @@
 {
   "name": "pulseengine/moonbit_checksum_updater",
   "version": "0.1.0",
+  "deps": {
+    "moonbitlang/x": "0.4.40"
+  },
   "readme": "README.md",
   "repository": "https://github.com/pulseengine/moonbit_checksum_updater",
   "license": "Apache-2.0",
-  "keywords": ["checksum", "wasm", "cli", "moonbit"],
+  "keywords": [
+    "checksum",
+    "wasm",
+    "cli",
+    "moonbit"
+  ],
   "description": "A WASM Component CLI tool and library for managing and validating checksums of tool binaries, built with MoonBit"
 }
