@@ -205,7 +205,7 @@ pub fn[H : HttpClient, S : Sha256Hasher] fill_checksums(
         }
       }
       let hash = try {
-        hasher.sha256(Bytes::of_string(body))
+        hasher.sha256(@encoding.encode(UTF8, body))
       } catch {
         _ => {
           continue
