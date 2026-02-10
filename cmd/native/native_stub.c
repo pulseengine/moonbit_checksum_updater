@@ -176,3 +176,38 @@ void checksum_sleep_ms(int32_t ms) {
     usleep((useconds_t)ms * 1000);
 #endif
 }
+
+/* ================================================================
+ * Get GitHub auth token via `gh auth token` CLI
+ * Returns token as bytes, or empty bytes if unavailable.
+ * ================================================================ */
+
+MOONBIT_FFI_EXPORT
+moonbit_bytes_t checksum_get_gh_token(void) {
+#ifdef _WIN32
+    FILE *fp = _popen("gh auth token 2>nul", "r");
+#else
+    FILE *fp = popen("gh auth token 2>/dev/null", "r");
+#endif
+    if (!fp) {
+        return moonbit_make_bytes(0, 0);
+    }
+    char buf[256];
+    size_t len = fread(buf, 1, sizeof(buf) - 1, fp);
+#ifdef _WIN32
+    int status = _pclose(fp);
+#else
+    int status = pclose(fp);
+#endif
+    if (status != 0 || len == 0) {
+        return moonbit_make_bytes(0, 0);
+    }
+    /* Trim trailing whitespace/newline */
+    while (len > 0 && (buf[len-1] == '\n' || buf[len-1] == '\r'
+                       || buf[len-1] == ' ')) {
+        len--;
+    }
+    moonbit_bytes_t result = moonbit_make_bytes(len, 0);
+    memcpy(result, buf, len);
+    return result;
+}

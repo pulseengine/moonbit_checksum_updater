@@ -46,6 +46,36 @@ extern "C" fn checksum_http_get_body_ffi() -> Bytes = "checksum_http_get_body"
 
 extern "C" fn checksum_sleep_ms_ffi(ms : Int) -> Unit = "checksum_sleep_ms"
 
+extern "C" fn checksum_get_gh_token_ffi() -> Bytes = "checksum_get_gh_token"
+
+// ── GitHub token resolution ─────────────────────────────────────────
+
+/// Try to obtain a GitHub API token for authenticated requests (5000 req/hr).
+/// Checks GITHUB_TOKEN env var first, then `gh auth token` CLI.
+fn get_github_token() -> String {
+  match @sys.get_env_var("GITHUB_TOKEN") {
+    Some(token) => {
+      if token.length() > 0 {
+        return token
+      }
+    }
+    None => ()
+  }
+  let token_bytes = checksum_get_gh_token_ffi()
+  if token_bytes.length() == 0 {
+    return ""
+  }
+  let result : Result[String, _] = try {
+    Ok(decode_utf8(token_bytes))
+  } catch {
+    _ => Err(())
+  }
+  match result {
+    Ok(t) => t
+    Err(_) => ""
+  }
+}
+
 // ── Native sleeper via C FFI ────────────────────────────────────────
 
 struct NativeSleeper {}
@@ -57,7 +87,27 @@ impl @lib.Sleeper for NativeSleeper with sleep_ms(self, ms) {
 
 // ── Native HTTP client via curl FFI ─────────────────────────────────
 
-struct NativeHttpClient {}
+struct NativeHttpClient {
+  token : String
+}
+
+/// Inject Authorization header for GitHub API requests if a token is available.
+fn inject_auth_header(
+  token : String,
+  url : String,
+  headers : Array[(String, String)]
+) -> Array[(String, String)] {
+  if token.length() > 0 && url.has_prefix("https://api.github.com/") {
+    let result : Array[(String, String)] = []
+    for pair in headers {
+      result.push(pair)
+    }
+    result.push(("Authorization", "Bearer \{token}"))
+    result
+  } else {
+    headers
+  }
+}
 
 /// Build a newline-separated header string for the C FFI.
 /// Input: [("Name", "Value"), ...] -> "Name: Value\nName2: Value2\n"
@@ -84,8 +134,8 @@ fn decode_utf8(data : Bytes) -> String raise {
 }
 
 impl @lib.HttpClient for NativeHttpClient with get(self, url, headers) {
-  let _ = self
-  let (status, body) = do_http_get(url, headers)
+  let actual_headers = inject_auth_header(self.token, url, headers)
+  let (status, body) = do_http_get(url, actual_headers)
   if status < 200 || status >= 300 {
     raise @lib.http_error("HTTP GET failed with status \{status}")
   }
@@ -97,8 +147,8 @@ impl @lib.HttpClient for NativeHttpClient with get_with_status(
   url,
   headers
 ) {
-  let _ = self
-  do_http_get(url, headers)
+  let actual_headers = inject_auth_header(self.token, url, headers)
+  do_http_get(url, actual_headers)
 }
 
 /// Shared HTTP GET implementation using C FFI.
@@ -126,6 +176,15 @@ impl @lib.Sha256Hasher for NativeSha256Hasher with sha256(self, data) {
   let _ = self
   let hash = @crypto.sha256(data)
   @crypto.bytes_to_hex_string(hash)
+}
+
+/// Create an HTTP client with optional GitHub authentication.
+fn make_http_client() -> NativeHttpClient {
+  let token = get_github_token()
+  if token.length() > 0 {
+    println("Using GitHub authentication (5000 req/hr)")
+  }
+  NativeHttpClient::{ token }
 }
 
 /// Parse command-line arguments.
@@ -190,7 +249,7 @@ fn run_validate(fs : NativeFileSystem, checksum_dir : String) -> Unit {
 }
 
 fn run_update_all(fs : NativeFileSystem, checksum_dir : String) -> Unit {
-  let http = NativeHttpClient::{}
+  let http = make_http_client()
   let sleeper = NativeSleeper::{}
   let config : @lib.UpdateConfig = {
     checksum_dir: checksum_dir,
@@ -210,7 +269,7 @@ fn run_update_all(fs : NativeFileSystem, checksum_dir : String) -> Unit {
 }
 
 fn run_fill_checksums(fs : NativeFileSystem, checksum_dir : String) -> Unit {
-  let http = NativeHttpClient::{}
+  let http = make_http_client()
   let hasher = NativeSha256Hasher::{}
   let files_result : Result[Array[String], _] = try {
     Ok(fs.list_dir(checksum_dir))
@@ -258,32 +317,20 @@ fn run_fill_checksums(fs : NativeFileSystem, checksum_dir : String) -> Unit {
     }
     let version_info = info.versions[version]
     let tag = "v\{version}"
-    let fill_result : Result[@lib.VersionInfo, _] = try {
-      Ok(@lib.fill_checksums(http, hasher, info.github_repo, tag, version_info))
+    let updated_vi = @lib.fill_checksums(http, hasher, info.github_repo, tag, version_info)
+    info.versions[version] = updated_vi
+    let save_result : Result[Unit, _] = try {
+      Ok(@lib.save_tool_info(fs, path, info))
     } catch {
       e => Err(e)
     }
-    match fill_result {
-      Ok(updated_vi) => {
-        info.versions[version] = updated_vi
-        let save_result : Result[Unit, _] = try {
-          Ok(@lib.save_tool_info(fs, path, info))
-        } catch {
-          e => Err(e)
-        }
-        match save_result {
-          Ok(_) => {
-            println("  [FILLED] \{info.tool_name} v\{version}")
-            filled += 1
-          }
-          Err(e) => {
-            println("  [FAILED] \{info.tool_name}: save error - \{e}")
-            failed += 1
-          }
-        }
+    match save_result {
+      Ok(_) => {
+        println("  [FILLED] \{info.tool_name} v\{version}")
+        filled += 1
       }
       Err(e) => {
-        println("  [FAILED] \{info.tool_name}: \{e}")
+        println("  [FAILED] \{info.tool_name}: save error - \{e}")
         failed += 1
       }
     }
