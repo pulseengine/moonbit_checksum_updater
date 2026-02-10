@@ -4,7 +4,7 @@ test "ToolInfo::empty creates valid structure" {
   assert_eq(info.github_repo, "bytecodealliance/wasm-tools")
   assert_eq(info.latest_version, "")
   assert_eq(info.build_type, "binary")
-  assert_eq(info.versions.size(), 0)
+  assert_eq(info.versions.length(), 0)
   assert_eq(info.supported_platforms.length(), 5)
 }
 

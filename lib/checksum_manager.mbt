@@ -183,7 +183,7 @@ pub fn[H : HttpClient, S : Sha256Hasher] fill_checksums(
   github_repo : String,
   tag : String,
   version_info : VersionInfo
-) -> VersionInfo raise {
+) -> VersionInfo {
   let new_platforms : Map[String, PlatformInfo] = {}
   version_info.platforms.each(fn(platform : String, plat_info : PlatformInfo) {
     new_platforms[platform] = plat_info
