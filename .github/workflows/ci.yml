@@ -12,6 +12,7 @@ env:
 jobs:
   build:
     name: Build and Test
+    # Stays on ubuntu-latest: Bazel + bazelisk not in smithy toolchains; also uses sudo mv to /usr/local/bin
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -75,6 +76,7 @@ jobs:
 
   build-macos:
     name: Build on macOS
+    # Stays on macos-latest: smithy phase 1 is Linux-only
     runs-on: macos-latest
     permissions:
       id-token: write
@@ -128,7 +130,7 @@ jobs:
 
   moonbit:
     name: MoonBit Check and Test
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, rust-cpu]
 
     steps:
       - uses: actions/checkout@v4

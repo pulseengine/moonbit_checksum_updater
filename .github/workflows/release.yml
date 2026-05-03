@@ -16,6 +16,7 @@ permissions:
 jobs:
   build-linux:
     name: Build Linux
+    # Stays on ubuntu-latest: Bazel + bazelisk not in smithy toolchains; also uses sudo mv to /usr/local/bin
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -66,6 +67,7 @@ jobs:
 
   build-macos:
     name: Build macOS
+    # Stays on macos-latest: smithy phase 1 is Linux-only
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -110,7 +112,7 @@ jobs:
   release:
     name: Create Release
     needs: [build-linux, build-macos]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, light]
     steps:
       - uses: actions/checkout@v4
 
